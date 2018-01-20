@@ -1,61 +1,186 @@
-"A lightweight package for making plans"
+"A lightweight package for making (and sticking to) plans"
 module PlanB
+import Base: *
+using Base.Dates
+using Spec
+using Match
 
-global comments = Dict{Goal, Vector{String}}
-global due = Dict{Goal, Date}
-global duration = Dict{Goal, Dates.Period}
+export m,
+       h,
+       d,
+       @o,
+       @x,
+       @g,
+       @sd,
+       addplanfile!,
+       parseplans,
+       Jan,
+       Feb,
+       Mar,
+       May,
+       Jun,
+       Jul,
+       Aug,
+       Sep,
+       Oct,
+       Nov,
+       Dec
+## Convenience units
+m = Minute
+h = Hour
+d = Day
 
-"A Task! Something to achieve"
-struct Goal
+## Config
+
+planfiles = Set{String}()
+
+"Add plan files global directory"
+function addplanfile!(path::String)
+  global planfiles
+  push!(planfiles, path)
+end
+
+"Parse a `planfile`"
+function parseplan(planfile::String)
+  println("Parsing Planfile, ", planfile)
+  include(planfile)
+end
+
+"Parse all plans in `planfiles`"
+parseplans() = foreach(parseplan, planfiles)
+
+"""
+Conveniece function for creating time duratiom
+
+```jldoctest
+julia> 1m
+```
+"""
+(*)(dur::Integer, tp::Type{TP<:Dates.TimePeriod} where TP)  = TP(dur)
+
+abstract type AbstractGoal end
+
+"A Goal: something to achieve"
+struct Task <: AbstractGoal
   name::Symbol
   desc::String
 end
 
-macro o(name::Symbol, description::String)
-  :(name = Goal(name, description))
+"A Goal is a set of tasks"
+struct Goal <: AbstractGoal
+  name::Symbol
+  desc::String
 end
 
-"Create goal with relation"
-macro o(name::Expr, description::String)
-  :(name = Goal(name, description))
+## Globals
+
+global goals = Dict{Symbol, Goal}()
+goalnames() = keys(goals)
+addgoal!(g::Goal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+
+# TODO: implement
+addsubgoalrel!(g::AbstractGoal, ag::Goal) = true
+addsubgoalrel!(g::Symbol, ag::Symbol) = true
+
+global duration_ = Dict{AbstractGoal, Dates.Period}()
+
+global creation_date = Dict{AbstractGoal, TimeType}()
+set_creation_date!(g::AbstractGoal, dt::TimeType) = creation_date[g] = dt
+
+"Set the expected time period of `g` to `tp`"
+addtag(g::AbstractGoal, tp::TimePeriod) = duration_[Goal] = tp
+
+"Add `tp` as parent of `g`"
+# TODO
+addtag(g::AbstractGoal, tp::Symbol) = true
+
+function addtag(g::AbstractGoal, hmm::Expr)
+  @show hmm
+  @assert false
 end
 
-# To add properties either I need a global store
-# Or a local global store
-# Or each goal has stuff in it
-# Or each value is its own type
 
-comment!(g::Goal, cmt::String) = comments[g] = cmt
-comments(g::Goal) = comments[g]
-duration!(g::Goal, dur::Dates.Period) = duration[g] = dur
-# due!(g::Goal, time::Dates.)
+"""
+Extract names from subgoal relation
 
-# Relations
-"Assert that `g1` depends on `g2`"
-depends!(g1::Goal, g2::Goal)
+```jldoctest
+ok
+```
+"""
+function matchsubgoal(e::Expr)
+  @match e begin
+      Expr(:call,      [:<, subgoal, supergoal], _)     => subgoal, supergoal
+      Expr(expr_type,  _...)                => error("Can't extract name from ",
+                                                      expr_type, " expression:\n",
+                                                      "    $e\n")
+  end
+end
 
-# Q1. What kind of relations, - a goal depends on another goal. - 
-# Q2. How to deal with uncertainty
-# Q3. 
+"""
+Does `expr` express subgoal relation
 
+```jldoctest
+julia> issubgoalexpr(:(subgoal < supergoal))
+true
 
-# Example
-sand = Goal(:makesand, "Make a sandwich")
-comment!(sand, "I want it to be a juicy sandwich")
-duration!(sand, 60m)
+julia> issubgoalexpr(:(subgoal > supergoal))
+false
+```
+"""
+function issubgoalexpr(expr::Expr)
+  (&)(expr.head == :call,
+      expr.args[1] == :<,
+      expr.args[2] isa Symbol,
+      expr.args[3] isa Symbol)
+end
 
-piicml = Goal(:piicml, "Parametric Inversion of Non-Invertible Functions")
-theory = Goal(:theory, "Complete theoretical analysis of advantages of parametric inversion")
-comment!(theory, "is it correct to decompose theorical advantages into two parts")
-comment!(theory, "what does it mean to solve pi constraints")
+"Add a `Goal` to global store"
+macro g(name::Symbol, desc::String)
+  addgoal!(Goal(name, desc))
+end
 
-whypi = Goal(:whypi, "Answer: under what conditions is parametric inversion better than unconstrained neural network for finding right-inverse")
-due!(whypi, )
-. {whypi} determine what is correct comparison of pi and unconstrained neural network
-. {whypi, maybe} Write up edgar decomposition
-. {whypi, maybe} Formalize constraint decomposition
+"Add `Goal` with subtype expression"
+macro g(subgoal::Expr, desc::String)
+  @pre issubgoalexpr(subgoal)
+  @show subgoalnm, supergoalnm = matchsubgoal(subgoal)
+  quote
+    @pre nm ∉ goalnames()
+    addgoal!(Goal($(Meta.quot(subgoalnm)), $desc))
+    addsubgoalrel!($(Meta.quot(subgoalnm)), $(Meta.quot(supergoalnm)))
+  end
+end
 
+ok(x::Symbol) = x
+ok(x::Expr) = esc(x)
 
-@o :piicml "Parametric Inversion of Non-Invertible Functions"
-@o :theory < piicml "Complete theoretical analysis of advantages of parametric inversion"
+macro o(tagexpr::Expr, description::String)
+  name = gensym()
+  # name = :OK
+  # name2 = :NOTOK
+  @show tags = tagexpr.args
+  @show tagsprocessed = Expr(:vect, map(ok, tags))
+  quote
+    # @show $(esc(name))
+    $(esc(name)) = Task($(Meta.quot(name)), $description)
+    foreach(arg -> addtag($(esc(name)), arg), $tagsprocessed...)
+    set_creation_date!($(esc(name)), curr_datetime())
+  end
+end
+
+"DateTime for section"
+datetime = Base.Dates.now()
+set_datetime!(datetime_::TimeType) = global datetime = datetime_
+curr_datetime() = datetime
+
+macro sd(datetimeexpr)
+  quote
+    set_datetime!($(esc(datetimeexpr)))
+  end
+end
+
+# comment!(g::Goal, cmt::String) = global comments_[g] = cmt
+# comments(g::Goal) = comments_[g]
+duration!(g::Goal, dur::Dates.Period) = global duration_[g] = dur
+# due_!(g::Goal, time::Dates.)
+
 end
