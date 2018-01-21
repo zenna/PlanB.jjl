@@ -1,4 +1,16 @@
-"A lightweight package for making (and sticking to) plans"
+"""A lightweight package for making (and sticking to) plans
+
+# Semantics
+
+- There is a set of possible worlds: S
+- A goal `A` is either:
+  (i) a set of desired worlds  `A ⊆ Ω`, e.g. 'become president' or
+  (ii) a set of trajectories where a trajcetory is a sequence of states
+       (s_i, ..., s_k), e.g. 'go shopping'
+- e.g. becoming a senator ``S_g`` is a subgoal of becoming president `S_p`
+- Given a goal `G`, and the current state `s`, a subgoal
+  Note: a subgoal is not a subset of `G`
+"""
 module PlanB
 import Base: *
 using Base.Dates
@@ -60,13 +72,7 @@ julia> 1m
 
 abstract type AbstractGoal end
 
-"A Goal: something to achieve"
-struct Task <: AbstractGoal
-  name::Symbol
-  desc::String
-end
-
-"A Goal is a set of tasks"
+"A Goal is a set of possible worlds"
 struct Goal <: AbstractGoal
   name::Symbol
   desc::String
@@ -161,7 +167,7 @@ macro o(tagexpr::Expr, description::String)
   @show tagsprocessed = Expr(:vect, map(ok, tags))
   quote
     # @show $(esc(name))
-    $(esc(name)) = Task($(Meta.quot(name)), $description)
+    $(esc(name)) = Goal($(Meta.quot(name)), $description)
     foreach(arg -> addtag($(esc(name)), arg), $tagsprocessed...)
     set_creation_date!($(esc(name)), curr_datetime())
   end
