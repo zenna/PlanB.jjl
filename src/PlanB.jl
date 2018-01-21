@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-"""A lightweight package for making (and sticking to) plans
-
-# Semantics
-
-- There is a set of possible worlds: S
-- A goal `A` is either:
-  (i) a set of desired worlds  `A ⊆ Ω`, e.g. 'become president' or
-  (ii) a set of trajectories where a trajcetory is a sequence of states
-       (s_i, ..., s_k), e.g. 'go shopping'
-- e.g. becoming a senator ``S_g`` is a subgoal of becoming president `S_p`
-- Given a goal `G`, and the current state `s`, a subgoal
-  Note: a subgoal is not a subset of `G`
-=======
 # __precompile__()
 """A lightweight package for making (and sticking to) plans
 
@@ -31,20 +17,20 @@ You're on track to reach your goal
 Theory
 - Goals: Desired state you want to be in
 
->>>>>>> 1c7d22abbaaaf4b37670de6544524e687d50111b
 """
 module PlanB
 import Base: *
 using Base.Dates
 using Spec
 using Match
-
-"What"
+using DataFrames
 
 
 export m,
        h,
        d,
+       w,
+       mo,
        @o,
        @x,
        @g,
@@ -65,9 +51,24 @@ export m,
 ## Convenience units
 m = Minute
 h = Hour
-d = Day
 
-## Config
+"Work day"
+wd = 8h
+d = Day
+w = Week
+
+"Work week"
+ww = 6wd
+mo = Month
+
+"""
+Conveniece function for creating time duratiom
+
+```jldoctest
+julia> 1m
+```
+"""
+(*)(dur::Integer, tp::Type{P})  where P <: Base.Dates.Period = P(dur)
 
 planfiles = Set{String}()
 
@@ -86,47 +87,48 @@ end
 "Parse all plans in `planfiles`"
 parseplans() = foreach(parseplan, planfiles)
 
-"""
-Conveniece function for creating time duratiom
-
-```jldoctest
-julia> 1m
-```
-"""
-(*)(dur::Integer, tp::Type{TP<:Dates.TimePeriod} where TP)  = TP(dur)
-
 abstract type AbstractGoal end
 
-"A Goal is a set of possible worlds"
+"A Goal: something to achieve"
+struct Task <: AbstractGoal
+  name::Symbol
+  desc::String
+end
+
+"A Goal is a set of tasks"
 struct Goal <: AbstractGoal
   name::Symbol
   desc::String
 end
 
 ## Globals
+global df = DataFrame(name = Symbol[],
+                      ag = AbstractGoal[],
+                      creation_date = [],
+                      duration = [])
+rowid(ag::AbstractGoal) =
+rowid(name::Symbol) =
 
-global goals = Dict{Symbol, Goal}()
+global goals = Dict{Symbol, AbstractGoal}()
 goalnames() = keys(goals)
-addgoal!(g::Goal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+addgoal!(g::AbstractGoal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+addgoal!(g::AbstractGoal) = (@pre name ∉ goalnames(); push!(df, [g.name, g, missing, missing]))
 
 # TODO: implement
 addsubgoalrel!(g::AbstractGoal, ag::Goal) = true
 addsubgoalrel!(g::Symbol, ag::Symbol) = true
 
-global duration_ = Dict{AbstractGoal, Dates.Period}()
-
-global creation_date = Dict{AbstractGoal, TimeType}()
-set_creation_date!(g::AbstractGoal, dt::TimeType) = creation_date[g] = dt
+set_creation_date!(g::AbstractGoal, dt::TimeType) = df[rowid(g), :creation_date] = dt
 
 "Set the expected time period of `g` to `tp`"
-addtag(g::AbstractGoal, tp::TimePeriod) = duration_[Goal] = tp
+addtag(g::AbstractGoal, tp::Period) = df[rowid(g), :duration] = tp
+
 
 "Add `tp` as parent of `g`"
 # TODO
 addtag(g::AbstractGoal, tp::Symbol) = true
 
 function addtag(g::AbstractGoal, hmm::Expr)
-  @show hmm
   @assert false
 end
 
@@ -135,12 +137,11 @@ end
 Extract names from subgoal relation
 
 ```jldoctest
-ok
 ```
 """
 function matchsubgoal(e::Expr)
   @match e begin
-      Expr(:call,      [:→, subgoal, supergoal], _)     => subgoal, supergoal
+      Expr(:call,      [:<, subgoal, supergoal], _)     => subgoal, supergoal
       Expr(expr_type,  _...)                => error("Can't extract name from ",
                                                       expr_type, " expression:\n",
                                                       "    $e\n")
@@ -160,7 +161,7 @@ false
 """
 function issubgoalexpr(expr::Expr)
   (&)(expr.head == :call,
-      expr.args[1] == :→,
+      expr.args[1] == :<,
       expr.args[2] isa Symbol,
       expr.args[3] isa Symbol)
 end
@@ -173,7 +174,7 @@ end
 "Add `Goal` with subtype expression"
 macro g(subgoal::Expr, desc::String)
   @pre issubgoalexpr(subgoal)
-  @show subgoalnm, supergoalnm = matchsubgoal(subgoal)
+  subgoalnm, supergoalnm = matchsubgoal(subgoal)
   quote
     @pre nm ∉ goalnames()
     addgoal!(Goal($(Meta.quot(subgoalnm)), $desc))
@@ -181,55 +182,21 @@ macro g(subgoal::Expr, desc::String)
   end
 end
 
-ok(x::Symbol) = x
-ok(x::Expr) = esc(x)
+# We want symbols to say symbols, e.g. :x
+parseexpr(x::Symbol) = Meta.quot(x)
 
-function process(nm::Symbol, tagexpr::Expr, desc::String)
-  @show tags = tagexpr.args
-  @show tagsprocessed = Expr(:vect, map(ok, tags))
-  quote
-    @pre nm ∉ goalnames()
-    $(esc(name)) = Goal($(Meta.quot(name)), $desc)
-    foreach(arg -> addtag($(esc(name)), arg), $tagsprocessed...)
-    set_creation_date!($(esc(name)), curr_datetime())
-  end
-end
+# But expressions are generally things like `5m` which we want to be computed
+parseexpr(x::Expr) = esc(x)
 
-
-"""
-Anonymous `Goal` with tags
-
-```jldoctest
-@o {writethesis, 1h} "Update chapter 4 with new figures"
-```
-"""
 macro o(tagexpr::Expr, desc::String)
   name = gensym()
-  process(nm, tagexpr, desc)
-end
-
-"""
-Anonymous `Goal` with tags
-
-```jldoctest
-@o piicml → thesis {due:Date(2018, Feb, 8)} "Submit Parametric Inversion to ICML"
-
-```
-"""
-macro o(goalrel::Expr, tagexpr::Expr, desc::String)
-  name = gensym()
-  process(nm, tagexpr, desc)
-end
-
-"""
-`Goal` named `nm` without tags
-
-```jldoctest
-@o errand "Complete errands"
-```
-"""
-macro o(nm::Symbol, desc::String)
-  process(nm, tagexpr, desc)
+  tags = tagexpr.args
+  quote
+    $(esc(name)) = Task($(Meta.quot(name)), $desc)
+    foreach(arg -> addtag($(esc(name)), arg), [$((map(parseexpr, tags))...)])
+    addgoal!($(esc(name)))
+    set_creation_date!($(esc(name)), curr_datetime())
+  end
 end
 
 "DateTime for section"
@@ -242,10 +209,5 @@ macro sd(datetimeexpr)
     set_datetime!($(esc(datetimeexpr)))
   end
 end
-
-# comment!(g::Goal, cmt::String) = global comments_[g] = cmt
-# comments(g::Goal) = comments_[g]
-duration!(g::Goal, dur::Dates.Period) = global duration_[g] = dur
-# due_!(g::Goal, time::Dates.)
 
 end
