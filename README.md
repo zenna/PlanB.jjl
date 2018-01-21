@@ -1,5 +1,11 @@
 # PlanB.jl
 
+[![Build Status](https://travis-ci.org/zenna/PlanB.jl.svg?branch=master)](https://travis-ci.org/zenna/PlanB.jl)
+
+[![codecov.io](http://codecov.io/github/zenna/PlanB.jl/coverage.svg?branch=master)](http://codecov.io/github/zenna/PlanB.jl?branch=master)
+
+
+
 PlanB is a simple, but powerful tool for managing ones goals.
 
 The objective is to have a todo list which is as simple to maintain as a simple

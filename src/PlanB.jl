@@ -34,6 +34,7 @@ import Base: *
 using Base.Dates
 using Spec
 using Match
+using DataFrames
 
 export m,
        h,
@@ -55,13 +56,13 @@ export m,
        Oct,
        Nov,
        Dec
+
 ## Convenience units
 m = Minute
 h = Hour
 d = Day
 
-## Config
-
+## Config / IO
 planfiles = Set{String}()
 
 "Add plan files global directory"
@@ -80,7 +81,7 @@ end
 parseplans() = foreach(parseplan, planfiles)
 
 """
-Conveniece function for creating time duratiom
+Convenient syntax for creating durations
 
 ```jldoctest
 julia> 1m
@@ -97,39 +98,36 @@ struct Goal <: AbstractGoal
 end
 
 ## Globals
+global df = DataFrame(name = Symbol[],
+                      ag = AbstractGoal[],
+                      creation_date = [],
+                      duration = [])
+rowid(ag::AbstractGoal) = todo
+rowid(name::Symbol) = todo
 
-global goals = Dict{Symbol, Goal}()
+global goals = Dict{Symbol, AbstractGoal}()
 goalnames() = keys(goals)
-addgoal!(g::Goal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+addgoal!(g::AbstractGoal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+addgoal!(g::AbstractGoal) = (@pre name ∉ goalnames(); push!(df, [g.name, g, missing, missing]))
 
 # TODO: implement
 addsubgoalrel!(g::AbstractGoal, ag::Goal) = true
 addsubgoalrel!(g::Symbol, ag::Symbol) = true
 
-global duration_ = Dict{AbstractGoal, Dates.Period}()
-
-global creation_date = Dict{AbstractGoal, TimeType}()
-set_creation_date!(g::AbstractGoal, dt::TimeType) = creation_date[g] = dt
+set_creation_date!(g::AbstractGoal, dt::TimeType) = df[rowid(g), :creation_date] = dt
 
 "Set the expected time period of `g` to `tp`"
-addtag(g::AbstractGoal, tp::TimePeriod) = duration_[Goal] = tp
+addtag(g::AbstractGoal, tp::Period) = df[rowid(g), :duration] = tp
 
 "Add `tp` as parent of `g`"
-# TODO
-addtag(g::AbstractGoal, tp::Symbol) = true
+addtag(g::AbstractGoal, tp::Symbol) = true # TODO
 
-function addtag(g::AbstractGoal, hmm::Expr)
-  @show hmm
-  @assert false
+function addtag(g::AbstractGoal, data::T) where T
+  throw(ArgumentError("Don't know how to handle data of type $T"))
 end
-
 
 """
 Extract names from subgoal relation
-
-```jldoctest
-ok
-```
 """
 function matchsubgoal(e::Expr)
   @match e begin
@@ -141,7 +139,7 @@ function matchsubgoal(e::Expr)
 end
 
 """
-Does `expr` express subgoal relation
+Does `expr` express subgoal relation?
 
 ```jldoctest
 julia> issubgoalexpr(:(subgoal < supergoal))
@@ -158,36 +156,67 @@ function issubgoalexpr(expr::Expr)
       expr.args[3] isa Symbol)
 end
 
-"Add a `Goal` to global store"
-macro g(name::Symbol, desc::String)
-  addgoal!(Goal(name, desc))
+"""
+Concatenate Blocks
+
+```jldoctest
+julia> q1 = quote
+         x = 3
+         y = 4
+       end
+quote  # REPL[18], line 2:
+    x = 3 # REPL[18], line 3:
+    y = 4
+end
+
+julia> q2 = quote
+         a = 3
+         b = 4
+       end
+quote  # REPL[19], line 2:
+    a = 3 # REPL[19], line 3:
+    b = 4
+end
+
+julia> blockcat(q1, q2)
+quote  # REPL[18], line 2:
+    x = 3 # REPL[18], line 3:
+    y = 4 # REPL[19], line 2:
+    a = 3 # REPL[19], line 3:
+    b = 4
+end
+```
+"""
+function blockcat(qs::Expr...)
+  @pre all(q -> q.head == :block, qs)
+  Expr(:block, vcat(map(q -> q.args, qs)...)...)
 end
 
 "Add `Goal` with subtype expression"
-macro g(subgoal::Expr, desc::String)
+function subgoal(subgoal::Expr, desc::String)
   @pre issubgoalexpr(subgoal)
   @show subgoalnm, supergoalnm = matchsubgoal(subgoal)
   quote
-    @pre nm ∉ goalnames()
-    addgoal!(Goal($(Meta.quot(subgoalnm)), $desc))
     addsubgoalrel!($(Meta.quot(subgoalnm)), $(Meta.quot(supergoalnm)))
   end
 end
 
-ok(x::Symbol) = x
-ok(x::Expr) = esc(x)
+# We want symbols to say symbols, e.g. :x
+parseexpr(x::Symbol) = Meta.quot(x)
+
+# But expressions are generally things like `5m` which we want to be computed
+parseexpr(x::Expr) = esc(x)
 
 function process(nm::Symbol, tagexpr::Expr, desc::String)
-  @show tags = tagexpr.args
-  @show tagsprocessed = Expr(:vect, map(ok, tags))
+  tags = tagexpr.args
   quote
     @pre nm ∉ goalnames()
-    $(esc(name)) = Goal($(Meta.quot(name)), $desc)
-    foreach(arg -> addtag($(esc(name)), arg), $tagsprocessed...)
+    $(esc(name)) = Task($(Meta.quot(name)), $desc)
+    foreach(arg -> addtag($(esc(name)), arg), [$((map(parseexpr, tags))...)])
+    addgoal!($(esc(name)))
     set_creation_date!($(esc(name)), curr_datetime())
   end
 end
-
 
 """
 Anonymous `Goal` with tags
@@ -235,10 +264,5 @@ macro sd(datetimeexpr)
     set_datetime!($(esc(datetimeexpr)))
   end
 end
-
-# comment!(g::Goal, cmt::String) = global comments_[g] = cmt
-# comments(g::Goal) = comments_[g]
-duration!(g::Goal, dur::Dates.Period) = global duration_[g] = dur
-# due_!(g::Goal, time::Dates.)
 
 end
