@@ -1,5 +1,23 @@
 # __precompile__()
-"A lightweight package for making (and sticking to) plans"
+"""A lightweight package for making (and sticking to) plans
+
+## TODO
+Integrate with dataframes
+support tags in goals (as well as tasks)
+support colon syntax
+add reminder
+support @g_ (maybe)
+
+What I want it to tell me:
+
+You need to finish this today
+You're on track to reach your goal
+
+
+Theory
+- Goals: Desired state you want to be in
+
+"""
 module PlanB
 import Base: *
 using Base.Dates
