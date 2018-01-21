@@ -115,7 +115,7 @@ ok
 """
 function matchsubgoal(e::Expr)
   @match e begin
-      Expr(:call,      [:<, subgoal, supergoal], _)     => subgoal, supergoal
+      Expr(:call,      [:→, subgoal, supergoal], _)     => subgoal, supergoal
       Expr(expr_type,  _...)                => error("Can't extract name from ",
                                                       expr_type, " expression:\n",
                                                       "    $e\n")
@@ -135,7 +135,7 @@ false
 """
 function issubgoalexpr(expr::Expr)
   (&)(expr.head == :call,
-      expr.args[1] == :<,
+      expr.args[1] == :→,
       expr.args[2] isa Symbol,
       expr.args[3] isa Symbol)
 end
@@ -159,18 +159,52 @@ end
 ok(x::Symbol) = x
 ok(x::Expr) = esc(x)
 
-macro o(tagexpr::Expr, description::String)
-  name = gensym()
-  # name = :OK
-  # name2 = :NOTOK
+function process(nm::Symbol, tagexpr::Expr, desc::String)
   @show tags = tagexpr.args
   @show tagsprocessed = Expr(:vect, map(ok, tags))
   quote
-    # @show $(esc(name))
-    $(esc(name)) = Goal($(Meta.quot(name)), $description)
+    @pre nm ∉ goalnames()
+    $(esc(name)) = Goal($(Meta.quot(name)), $desc)
     foreach(arg -> addtag($(esc(name)), arg), $tagsprocessed...)
     set_creation_date!($(esc(name)), curr_datetime())
   end
+end
+
+
+"""
+Anonymous `Goal` with tags
+
+```jldoctest
+@o {writethesis, 1h} "Update chapter 4 with new figures"
+```
+"""
+macro o(tagexpr::Expr, desc::String)
+  name = gensym()
+  process(nm, tagexpr, desc)
+end
+
+"""
+Anonymous `Goal` with tags
+
+```jldoctest
+@o piicml → thesis {due:Date(2018, Feb, 8)} "Submit Parametric Inversion to ICML"
+
+```
+"""
+macro o(goalrel::Expr, tagexpr::Expr, desc::String)
+  name = gensym()
+  process(nm, tagexpr, desc)
+end
+
+"""
+`Goal` named `nm` without tags
+
+```jldoctest
+@o errand "Complete errands"
+```
+"""
+macro o(nm::Symbol, desc::String)
+  process(nm, tagexpr, desc)
 end
 
 "DateTime for section"
