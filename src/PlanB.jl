@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 """A lightweight package for making (and sticking to) plans
 
 # Semantics
@@ -12,10 +11,8 @@
 - Given a goal `G`, and the current state `s`, a subgoal
   Note: a subgoal is not a subset of `G`
 =======
-# __precompile__()
-"""A lightweight package for making (and sticking to) plans
 
-## TODO
+
 Integrate with dataframes
 support tags in goals (as well as tasks)
 support colon syntax
@@ -31,7 +28,6 @@ You're on track to reach your goal
 Theory
 - Goals: Desired state you want to be in
 
->>>>>>> 1c7d22abbaaaf4b37670de6544524e687d50111b
 """
 module PlanB
 import Base: *
