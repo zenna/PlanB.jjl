@@ -28,6 +28,24 @@ You're on track to reach your goal
 Theory
 - Goals: Desired state you want to be in
 
+How to express?
+
+- A is a subgoal of B
+- A might be necessary to achieve B
+
+that one goal has subgoals
+- There are different logical things we want to express
+- Doing A is necessary for B
+- Doing A or B are necesary
+Doing A is one way to achieve B
+
+Things like Duration or probability of success aren't properties of Goals
+They are properties of actions, or abstract actiosn
+Might want to say:
+- What's the probability this action will lead to this state
+- Whats probability can actually do this action
+
+
 """
 module PlanB
 import Base: *
@@ -156,50 +174,6 @@ function issubgoalexpr(expr::Expr)
       expr.args[3] isa Symbol)
 end
 
-"""
-Concatenate Blocks
-
-```jldoctest
-julia> q1 = quote
-         x = 3
-         y = 4
-       end
-quote  # REPL[18], line 2:
-    x = 3 # REPL[18], line 3:
-    y = 4
-end
-
-julia> q2 = quote
-         a = 3
-         b = 4
-       end
-quote  # REPL[19], line 2:
-    a = 3 # REPL[19], line 3:
-    b = 4
-end
-
-julia> blockcat(q1, q2)
-quote  # REPL[18], line 2:
-    x = 3 # REPL[18], line 3:
-    y = 4 # REPL[19], line 2:
-    a = 3 # REPL[19], line 3:
-    b = 4
-end
-```
-"""
-function blockcat(qs::Expr...)
-  @pre all(q -> q.head == :block, qs)
-  Expr(:block, vcat(map(q -> q.args, qs)...)...)
-end
-
-"Add `Goal` with subtype expression"
-function subgoal(subgoal::Expr, desc::String)
-  @pre issubgoalexpr(subgoal)
-  @show subgoalnm, supergoalnm = matchsubgoal(subgoal)
-  quote
-    addsubgoalrel!($(Meta.quot(subgoalnm)), $(Meta.quot(supergoalnm)))
-  end
-end
 
 # We want symbols to say symbols, e.g. :x
 parseexpr(x::Symbol) = Meta.quot(x)
@@ -264,5 +238,52 @@ macro sd(datetimeexpr)
     set_datetime!($(esc(datetimeexpr)))
   end
 end
+
+## Util
+"""
+Concatenate Blocks
+
+```jldoctest
+julia> q1 = quote
+         x = 3
+         y = 4
+       end
+quote  # REPL[18], line 2:
+    x = 3 # REPL[18], line 3:
+    y = 4
+end
+
+julia> q2 = quote
+         a = 3
+         b = 4
+       end
+quote  # REPL[19], line 2:
+    a = 3 # REPL[19], line 3:
+    b = 4
+end
+
+julia> blockcat(q1, q2)
+quote  # REPL[18], line 2:
+    x = 3 # REPL[18], line 3:
+    y = 4 # REPL[19], line 2:
+    a = 3 # REPL[19], line 3:
+    b = 4
+end
+```
+"""
+function blockcat(qs::Expr...)
+  @pre all(q -> q.head == :block, qs)
+  Expr(:block, vcat(map(q -> q.args, qs)...)...)
+end
+
+"Add `Goal` with subtype expression"
+function subgoal(subgoal::Expr, desc::String)
+  @pre issubgoalexpr(subgoal)
+  @show subgoalnm, supergoalnm = matchsubgoal(subgoal)
+  quote
+    addsubgoalrel!($(Meta.quot(subgoalnm)), $(Meta.quot(supergoalnm)))
+  end
+end
+
 
 end

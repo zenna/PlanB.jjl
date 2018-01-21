@@ -15,4 +15,3 @@ using Base.Test
 @o_ aliozoo {1wd} "Restructure Solver"
 
 @o prp → thesis {5d} "Implement the new solver framework"
-"""

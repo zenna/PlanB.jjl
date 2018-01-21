@@ -4,9 +4,7 @@
 
 [![codecov.io](http://codecov.io/github/zenna/PlanB.jl/coverage.svg?branch=master)](http://codecov.io/github/zenna/PlanB.jl?branch=master)
 
-
-
-PlanB is a simple, but powerful tool for managing ones goals.
+PlanB.jl is a simple, but powerful tool for managing ones goals and todos, build in Julia.
 
 The objective is to have a todo list which is as simple to maintain as a simple
 text file
@@ -23,7 +21,7 @@ Pkg.clone("https://github.com/zenna/PlanB.jl.git")
 
 Then make a some planfiles.  A planfile is just a julia file which contains goals.
 
-```
+```julia
 using PlanB
 
 @o thesis {due:Date(2019, 2, 8)} "Submit my Thesis"
