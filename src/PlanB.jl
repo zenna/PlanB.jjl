@@ -1,13 +1,17 @@
+# __precompile__()
 "A lightweight package for making (and sticking to) plans"
 module PlanB
 import Base: *
 using Base.Dates
 using Spec
 using Match
+using DataFrames
 
 export m,
        h,
        d,
+       w,
+       mo,
        @o,
        @x,
        @g,
@@ -28,9 +32,24 @@ export m,
 ## Convenience units
 m = Minute
 h = Hour
-d = Day
 
-## Config
+"Work day"
+wd = 8h
+d = Day
+w = Week
+
+"Work week"
+ww = 6wd
+mo = Month
+
+"""
+Conveniece function for creating time duratiom
+
+```jldoctest
+julia> 1m
+```
+"""
+(*)(dur::Integer, tp::Type{P})  where P <: Base.Dates.Period = P(dur)
 
 planfiles = Set{String}()
 
@@ -49,15 +68,6 @@ end
 "Parse all plans in `planfiles`"
 parseplans() = foreach(parseplan, planfiles)
 
-"""
-Conveniece function for creating time duratiom
-
-```jldoctest
-julia> 1m
-```
-"""
-(*)(dur::Integer, tp::Type{TP<:Dates.TimePeriod} where TP)  = TP(dur)
-
 abstract type AbstractGoal end
 
 "A Goal: something to achieve"
@@ -73,29 +83,33 @@ struct Goal <: AbstractGoal
 end
 
 ## Globals
+global df = DataFrame(name = Symbol[],
+                      ag = AbstractGoal[],
+                      creation_date = [],
+                      duration = [])
+rowid(ag::AbstractGoal) =
+rowid(name::Symbol) =
 
-global goals = Dict{Symbol, Goal}()
+global goals = Dict{Symbol, AbstractGoal}()
 goalnames() = keys(goals)
-addgoal!(g::Goal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+addgoal!(g::AbstractGoal) = (@pre name ∉ goalnames(); goals[g.name] = g)
+addgoal!(g::AbstractGoal) = (@pre name ∉ goalnames(); push!(df, [g.name, g, missing, missing]))
 
 # TODO: implement
 addsubgoalrel!(g::AbstractGoal, ag::Goal) = true
 addsubgoalrel!(g::Symbol, ag::Symbol) = true
 
-global duration_ = Dict{AbstractGoal, Dates.Period}()
-
-global creation_date = Dict{AbstractGoal, TimeType}()
-set_creation_date!(g::AbstractGoal, dt::TimeType) = creation_date[g] = dt
+set_creation_date!(g::AbstractGoal, dt::TimeType) = df[rowid(g), :creation_date] = dt
 
 "Set the expected time period of `g` to `tp`"
-addtag(g::AbstractGoal, tp::TimePeriod) = duration_[Goal] = tp
+addtag(g::AbstractGoal, tp::Period) = df[rowid(g), :duration] = tp
+
 
 "Add `tp` as parent of `g`"
 # TODO
 addtag(g::AbstractGoal, tp::Symbol) = true
 
 function addtag(g::AbstractGoal, hmm::Expr)
-  @show hmm
   @assert false
 end
 
@@ -104,7 +118,6 @@ end
 Extract names from subgoal relation
 
 ```jldoctest
-ok
 ```
 """
 function matchsubgoal(e::Expr)
@@ -142,7 +155,7 @@ end
 "Add `Goal` with subtype expression"
 macro g(subgoal::Expr, desc::String)
   @pre issubgoalexpr(subgoal)
-  @show subgoalnm, supergoalnm = matchsubgoal(subgoal)
+  subgoalnm, supergoalnm = matchsubgoal(subgoal)
   quote
     @pre nm ∉ goalnames()
     addgoal!(Goal($(Meta.quot(subgoalnm)), $desc))
@@ -150,19 +163,19 @@ macro g(subgoal::Expr, desc::String)
   end
 end
 
-ok(x::Symbol) = x
-ok(x::Expr) = esc(x)
+# We want symbols to say symbols, e.g. :x
+parseexpr(x::Symbol) = Meta.quot(x)
 
-macro o(tagexpr::Expr, description::String)
+# But expressions are generally things like `5m` which we want to be computed
+parseexpr(x::Expr) = esc(x)
+
+macro o(tagexpr::Expr, desc::String)
   name = gensym()
-  # name = :OK
-  # name2 = :NOTOK
-  @show tags = tagexpr.args
-  @show tagsprocessed = Expr(:vect, map(ok, tags))
+  tags = tagexpr.args
   quote
-    # @show $(esc(name))
-    $(esc(name)) = Task($(Meta.quot(name)), $description)
-    foreach(arg -> addtag($(esc(name)), arg), $tagsprocessed...)
+    $(esc(name)) = Task($(Meta.quot(name)), $desc)
+    foreach(arg -> addtag($(esc(name)), arg), [$((map(parseexpr, tags))...)])
+    addgoal!($(esc(name)))
     set_creation_date!($(esc(name)), curr_datetime())
   end
 end
@@ -177,10 +190,5 @@ macro sd(datetimeexpr)
     set_datetime!($(esc(datetimeexpr)))
   end
 end
-
-# comment!(g::Goal, cmt::String) = global comments_[g] = cmt
-# comments(g::Goal) = comments_[g]
-duration!(g::Goal, dur::Dates.Period) = global duration_[g] = dur
-# due_!(g::Goal, time::Dates.)
 
 end
