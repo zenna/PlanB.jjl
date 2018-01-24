@@ -107,7 +107,7 @@ function parseplans()
     set_datetime!(DataFrames.missing)
     parseplan(plan)
   end
-  println("Parsed plan files $planfiles")
+  println("\nParsed plan files $planfiles")
   showstats()
 end
 
