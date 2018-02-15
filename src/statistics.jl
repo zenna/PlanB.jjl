@@ -2,6 +2,7 @@ using Query
 
 canonicalizeifneed(h) = h
 canonicalizeifneed(cp::Dates.CompoundPeriod) = Dates.canonicalize(cp)
+Base.zero(::Type{AbstractPeriod}) = 0m
 
 "Total amount of time allocated "
 function totalallocated(day=Dates.today())
