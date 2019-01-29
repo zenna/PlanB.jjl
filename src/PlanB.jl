@@ -1,4 +1,3 @@
-# __precompile__()
 """A lightweight package for making (and sticking to) plans
 
 # Semantics
@@ -49,11 +48,12 @@ Might want to say:
 
 """
 module PlanB
-import Base: *, push!, colon
-using Base.Dates
+import Base: *, push!
+using Dates
 using Spec
 using Match
 using DataFrames
+using Query
 
 export m,
        h,

@@ -1,5 +1,3 @@
-using Query
-
 canonicalizeifneed(h) = h
 canonicalizeifneed(cp::Dates.CompoundPeriod) = Dates.canonicalize(cp)
 Base.zero(::Type{AbstractPeriod}) = 0m

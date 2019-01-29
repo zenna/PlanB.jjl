@@ -85,7 +85,7 @@ end
 addtag!(nm::Symbol, tag::Symbol) = push!(nm, :tags, tag)
 
 abstract type Tag end
-Base.colon(::Type{T}, value) where {T<:Tag} = T(value)
+(::Base.Colon)(::Type{T}, value) where {T<:Tag} = T(value)
 
 addtag!(nm::Symbol, tag::Tag) = set!(nm, field_name(tag), tag.value)
 addtag!(nm::Symbol, tag) = addtag!(nm, default(tag))
@@ -193,7 +193,7 @@ end
 
 
 "DateTime for section"
-datetime = Base.Dates.now()
+datetime = Dates.now()
 set_datetime!(datetime_::lm(TimeType)) = global datetime = datetime_
 curr_datetime() = datetime
 
