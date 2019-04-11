@@ -1,11 +1,14 @@
 name = "PlanB"
-uuid = "6f6b1a74-23df-11e9-2233-cf1899700aea"
+uuid = "45397acd-8256-59a6-98d4-ea504e2c5aff"
 authors = ["Zenna Tavares <zennatavares@gmail.com>"]
 version = "0.1.0"
 
 [deps]
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
-Match = "7eb4fadd-790c-5f42-8a69-bfa0b872bfbf"
-Query = "1a8c2f83-1ff3-5112-b086-8aa67b057ba1"
-Spec = "526a04b8-654b-11e8-1588-db2a414f95b5"
+Spec = "b8ccf107-3a88-5e0f-823b-b838c6a0f327"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
