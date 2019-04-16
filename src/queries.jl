@@ -1,6 +1,9 @@
 "Useful queries to ask"
 module Queries
 using Query
+using UnicodePlots
+using Omega
+
 import ..Core: globalrel
 using ..Time: isintersect
 using ..RandomRelation:RandRel
@@ -17,16 +20,15 @@ Schedule for `duration`
 scheduled(today(), 3.0)
 ```
 """
-function scheduled(duration; rel = globalrel())
+function scheduled(rel, duration)
   # Select ids that are scheduled for today
-  filter(x -> isintersect(duration, x.duration), rel.relations[:duration].vals)
+  filter(x -> isintersect(duration, x.scheduled), rel.relations[:scheduled].vals)
 end
 
-function summarize(rel  = globalrel())
+function summarize(randrel  = globalrandrel())
   println("Scheduled for today:")
-  display(scheduled(Dates.today(), rel = rel))
-  println("\n")
+  sched = lift(scheduled)(randrel, Dates.today())
+  rand(sched)
 end
-
 
 end
