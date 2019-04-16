@@ -1,39 +1,63 @@
 module Core
+using Spec
 
-"Stores an element that exists in several relations"
-struct Record{T <: NamedTuple}
-  rel::T
+
+# TODO
+# Should a relation be typed?
+# (dur = 3m, nm = 12.0)
+# Should the fields be sorted? No, not alphabetically anyway
+
+abstract type Relation{K} end
+
+"Set of tuples"
+struct UnTypedRelation{K} <: Relation{K}
+  vals::Vector{Tuple}
 end
 
-"Collection of records"
-struct Records
-  data::Set{Record}
-end
-Records() = Records(Set{Record}())
-Base.push!(xs::Records, x) = push!(xs.data, x)
+UnTypedRelation(xs::Vector{NamedTuple{K, T}}) where {K, T} = UnTypedRelation{K}(map(values, (xs)))
+UnTypedRelation(x::NamedTuple) = UnTypedRelation([x])
 
-"Memory mapped structure"
-struct MMAP{T}
-  data::T
-  path::String
+"Set of tuples"
+struct TypedRelation{K, T<:Tuple} <: Relation{K}
+  vals::Vector{T}
 end
 
-"Load the structure from file"
-function load(mmap::MMAP)
+TypedRelation(xs::Vector{NamedTuple{A, B}}) where {A, B} = TypedRelation{A,B}(map(values, (xs)))
+TypedRelation(x::NamedTuple) = TypedRelation([x])
+
+"Add entry to the relation"
+function add!(rel::Relation{K1}, nt::NamedTuple{K2}) where {K1, K2}
+  @pre K1 == K2 "Keys don't match, i.e.: $K1 != $K2"
+  push!(rel.vals, values(nt))
 end
 
-"Backup the structure to file"
-function backup()
+"Set of relations"
+struct Rel
+  relations::Dict{Symbol, Relation}
 end
 
-"Register the a fact mmap"
-function register!(nt::Record, mmap = loadmmap())
-  push!(mmap, nt)
+"Empty Rel"
+Rel() = Rel(Dict{Symbol, Relation}())
+
+"""
+```julia
+rel = Rel()
+add!(rel, :duration, (thing = "some work", duration = 4.0))
+```
+"""
+function add!(rel::Rel, relation::Symbol, values::NamedTuple; RelT::Type{RT} = UnTypedRelation) where {RT <: Relation}
+  if !(relation in keys(rel.relations))
+    rel.relations[relation] = RT(values)
+  else
+    add!(rel.relations[relation], values)
+  end
 end
 
-const data = Records()
-loadmmap() = data
+const rel = Rel()
+globalrel() = rel
 
-export register!
+register!(x; rel = globalrel()) = add!(rel, x)
+
+export add!, globalrel
 
 end

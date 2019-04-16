@@ -3,7 +3,8 @@ module Syntax
 using Dates
 using Spec
 import Omega
-import ..Core: register!, Record
+using ..Core: register!
+using ..Records: Record
 
 export ±,
        m,
@@ -36,11 +37,12 @@ Base.:*(dur, tp::Type{T}) where {X, T <: PlanBDur{X}} = X(dur)
 "defaultkey(::T) is the default key type of some type T"
 function defaultkey end
 
-defaultkey(::Dates.TimeType) = :due
-defaultkey(::Dates.Period) = :dur
-defaultkey(::AbstractString) = :desc
-defaultkey(::Bool) = :done
-defaultkey(::Symbol) = :id
+defaultkey(::Union{Dates.Period, Type{<:Dates.Period}}) = :duration
+defaultkey(::Union{Dates.TimeType, Type{<:Dates.TimeType}}) = :due
+defaultkey(::Union{AbstractString, Type{<:AbstractString}}) = :desc
+defaultkey(::Union{Real, Type{<:Real}}) = :completed
+defaultkey(::Union{Symbol, Type{<:Symbol}}) = :id
+defaultkey(x::Omega.RandVar) = defaultkey(Omega.elemtype(x))
 
 function handle_(x)
   k = defaultkey(x)
@@ -49,13 +51,20 @@ end
 handle_(x::NamedTuple) = x
 handle(args...) = merge(map(handle_, args)...)
 
+macro o(id::Symbol, args...)
+  :(register!(Record($(Meta.quot(id)), handle(0.0, $(args...)))))
+end
+
 macro o(args...)
-  :(register!(Record(handle(false, $(args...)))))
+  :(register!(Record(handle(0.0, $(args...)))))
 end
 
 macro x(args...)
-  :(register!(handle(true, $(args...))))
+  :(register!(Record(handle(1.0, $(args...)))))
 end
 
+function withtags(f, tags)
+  # 
+end
 
 end
