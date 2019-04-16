@@ -19,7 +19,7 @@ using .Records
 
 include("syntax.jl")
 using .Syntax
-export m, mo, d, w, ±, @o, @x
+export m, mo, d, w, ±, @o, @x, withtags, globalrandrel
 
 include("files.jl")
 using .Files
@@ -31,6 +31,10 @@ export isintersect
 
 include("queries.jl")
 using .Queries
-export scheduled, summary 
+export scheduled, summarize
+
+include("dataframe.jl")
+using .DF
+export dataframe 
 
 end # module

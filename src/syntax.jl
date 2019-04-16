@@ -3,7 +3,7 @@ module Syntax
 using Dates
 using Spec
 import Omega
-using ..Core: register!
+using ..Core: register!, add!, globalrel
 using ..Records: Record
 
 export ±,
@@ -12,7 +12,8 @@ export ±,
        d,
        w,
        @o,
-       @x
+       @x,
+       withtags
 
 "Simple Wrapper over `Dates.Period`"
 struct PlanBDur{T} end
@@ -63,8 +64,20 @@ macro x(args...)
   :(register!(Record(handle(1.0, $(args...)))))
 end
 
-function withtags(f, tags)
-  # 
+"""
+```julia
+PlanB.Syntax.withtags((scheduled = Date(2019, April, 16),), (
+  @o(mnist),
+  @o(sometask, 30m ± 5m, "Do some task")
+))
+```
+"""
+function withtags(tags::NamedTuple, records; rel = globalrel())
+  @pre :id ∉ keys(tags) "Tags should not contain ids"
+  for record in records
+    @show Record(record.id, tags)
+    add!(rel, Record(record.id, tags))
+  end
 end
 
 end
