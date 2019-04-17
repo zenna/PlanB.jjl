@@ -29,6 +29,7 @@ function add!(rel::Rel, relation::Symbol, values::NamedTuple; RelT::Type{RT} = U
   else
     add!(rel.relations[relation], values)
   end
+  values
 end
 
 export add!

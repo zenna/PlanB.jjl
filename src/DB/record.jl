@@ -35,6 +35,7 @@ function add!(rel::Rel, record::Record)
     nt = NamedTuple{(:id, k)}((record.id, record.entries[k]))
     Core.add!(rel, k, nt)
   end
+  record
 end
 
 end
