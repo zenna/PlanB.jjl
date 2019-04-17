@@ -3,7 +3,8 @@ module Syntax
 using Dates
 using Spec
 import Omega
-using ..Core: register!, add!, globalrel
+using ..Core: register!, add!
+using Global: globalrel
 using ..Records: Record
 
 export ±,

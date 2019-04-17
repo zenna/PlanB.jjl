@@ -4,18 +4,12 @@ module PlanB
 using Dates
 using Spec
 
+include("DB/DB.jl")
+using .DB
+export add!, globalrel, globalrandrel
+
 include("mmap.jl")
 using .MMAP
-
-include("core.jl")
-using .Core
-export add!, globalrel
-
-include("rand.jl")
-using .RandomRelation
-
-include("record.jl")
-using .Records
 
 include("syntax.jl")
 using .Syntax

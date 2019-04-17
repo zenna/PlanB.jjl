@@ -17,11 +17,10 @@ globalrandrel() = RandRel(globalrel())
 Schedule for `duration`
 
 ```julia
-scheduled(today(), 3.0)
+scheduled(today())
 ```
 """
 function scheduled(rel, duration)
-  # Select ids that are scheduled for today
   filter(x -> isintersect(duration, x.scheduled), rel.relations[:scheduled].vals)
 end
 
