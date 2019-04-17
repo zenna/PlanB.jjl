@@ -3,9 +3,7 @@ module Syntax
 using Dates
 using Spec
 import Omega
-using ..Core: register!, add!
-using Global: globalrel
-using ..Records: Record
+using ..DB: add!, globalrel, Record
 
 export ±,
        m,
@@ -54,15 +52,15 @@ handle_(x::NamedTuple) = x
 handle(args...) = merge(map(handle_, args)...)
 
 macro o(id::Symbol, args...)
-  :(register!(Record($(Meta.quot(id)), handle(0.0, $(args...)))))
+  :(add!(globalrel(), Record($(Meta.quot(id)), handle(0.0, $(args...)))))
 end
 
 macro o(args...)
-  :(register!(Record(handle(0.0, $(args...)))))
+  :(add!(globalrel(), Record(handle(0.0, $(args...)))))
 end
 
 macro x(args...)
-  :(register!(Record(handle(1.0, $(args...)))))
+  :(add!(globalrel(), Record(handle(1.0, $(args...)))))
 end
 
 """

@@ -1,7 +1,10 @@
+"Rel"
 module Core
 using Spec
 
-import ..Relations: Relation
+import ..Relations: Relation, UnTypedRelation
+import ..DB: add!
+export Rel
 
 "Set of relations"
 struct Rel
@@ -15,7 +18,7 @@ Rel() = Rel(Dict{Symbol, Relation}())
 Add to `relation` the entry `values`.
 Create the relation if it does not already exist in `rel`
 
-  ```julia
+```julia
 rel = Rel()
 add!(rel, :duration, (thing = "some work", duration = 4.0))
 ```
@@ -28,6 +31,6 @@ function add!(rel::Rel, relation::Symbol, values::NamedTuple; RelT::Type{RT} = U
   end
 end
 
-export add!, globalrel
+export add!
 
 end

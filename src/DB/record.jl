@@ -1,8 +1,11 @@
 "Records are a convenient way of creating relational entries"
 module Records
+import ..DB: add! 
 using ..Core: Relation, Rel
 using Spec
 import ..Core
+export Record
+
 
 "An element that exists in several relations"
 struct Record{K, T <: NamedTuple}
@@ -27,7 +30,7 @@ rel = Rel()
 add!(rel, Record(:zenna, (dur = 10, height = 20)))
 ```
 """
-function Core.add!(rel::Rel, record::Record)
+function add!(rel::Rel, record::Record)
   for k in keys(record.entries)
     nt = NamedTuple{(:id, k)}((record.id, record.entries[k]))
     Core.add!(rel, k, nt)

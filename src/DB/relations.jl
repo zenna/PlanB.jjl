@@ -1,6 +1,9 @@
 module Relations
 using Spec
 
+import ..DB: add! 
+export Relation
+
 abstract type Relation{K} end
 
 "Set of tuples"   

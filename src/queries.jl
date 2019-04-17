@@ -2,16 +2,13 @@
 module Queries
 using Query
 using UnicodePlots
-using Omega
+using Omega: lift
 
-import ..Core: globalrel
+import ..DB: globalrel, globalrandrel
 using ..Time: isintersect
-using ..RandomRelation:RandRel
 import Dates
 
-export scheduled, summarize, globalrandrel
-
-globalrandrel() = RandRel(globalrel())
+export scheduled, summarize
 
 """
 Schedule for `duration`

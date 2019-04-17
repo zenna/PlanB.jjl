@@ -1,7 +1,7 @@
 "Conversion to and from dataframes"
 module DF
 using DataFrames
-using ..Core: globalrel, Relation, globalrel
+using ..DB: Relation, globalrel
 
 export dataframe
 

@@ -7,12 +7,12 @@ version = "0.1.0"
 Callbacks = "db1e321a-d383-57b4-a664-0144fd54e973"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 Omega = "1af16e33-887a-59b3-8344-18f1671b3ade"
+Query = "1a8c2f83-1ff3-5112-b086-8aa67b057ba1"
 Spec = "b8ccf107-3a88-5e0f-823b-b838c6a0f327"
 TOML = "191fdcea-f9f2-43e0-b922-d33f71e2abc3"
+UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]

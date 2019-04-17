@@ -1,33 +1,30 @@
 "Program for planning"
 module PlanB
 
-using Dates
-using Spec
-
-include("DB/DB.jl")
+include("DB/DB.jl") # Database
 using .DB
-export add!, globalrel, globalrandrel
+export add!, globalrel, globalrandrel, Rel, Relation
 
-include("mmap.jl")
+include("mmap.jl")  # Memory mapped data structure
 using .MMAP
 
-include("syntax.jl")
+include("syntax.jl")  # Syntax for interacting with Database
 using .Syntax
-export m, mo, d, w, ±, @o, @x, withtags, globalrandrel
+export m, mo, d, w, ±, @o, @x, withtags
 
-include("files.jl")
+include("files.jl")   # File IO
 using .Files
 export processplans
 
-include("Time/time.jl")
+include("Time/time.jl") # Time data structures
 using .Time
 export isintersect
 
-include("queries.jl")
+include("queries.jl")   # Queries
 using .Queries
 export scheduled, summarize
 
-include("dataframe.jl")
+include("dataframe.jl")   # Interop with dataframes
 using .DF
 export dataframe 
 
